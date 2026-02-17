@@ -5,21 +5,21 @@ import numpy as np
 from PIL import Image
 import io  
 
+import tensorflow as tf  # only if needed for predict
+
 @st.cache_resource
 def load_model():
     try:
-        with open("my_model.pkl", "rb") as f:  # exact filename
-            return pickle.load(f)
-    except FileNotFoundError:
-        st.error("❌ my_model.pkl not found! Upload it to repo root.")
-        return None
+        return tf.keras.models.load_model("my_model.h5")
     except Exception as e:
-        st.error(f"❌ Model load error: {str(e)[:100]}...")
+        st.error(f"Load error: {str(e)}")
         return None
 
 model = load_model()
 if model is None:
-    st.stop()  # Halt app until fixed
+    st.stop()
+
+# Later: prediction = model.predict(features)
 
 
 model = load_model()
@@ -50,4 +50,5 @@ if uploaded_file is not None:
         st.image(cv2.cvtColor(img_with_contours, cv2.COLOR_BGR2RGB), caption="Contours")
     else:
         st.warning("No contours detected. Try a clearer image.")
+
 
