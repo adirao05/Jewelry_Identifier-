@@ -10,7 +10,7 @@ st.markdown("""
 <div style="text-align:center;background:linear-gradient(90deg,#667eea 0%,#764ba2 100%);
             padding:2rem;border-radius:16px;color:white">
   <h1>Jewelry Identifier</h1>
-  <p><em>Upload an image → model predicts the jewelry type (diamond ring or ruby pendant or sapphire earrings) </em></p>
+  <p><em>model predicts the jewelry type (diamond ring or ruby pendant or sapphire earrings) </em></p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -34,7 +34,7 @@ if model is None:
 # Model expects (None, 64, 64, 3) as you showed
 H, W, C = model.input_shape[1], model.input_shape[2], model.input_shape[3]
 
-uploaded_file = st.file_uploader("📁 Upload jewelry image", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("Upload jewelry image", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is None:
     st.info("Upload an image to start prediction.")
@@ -70,6 +70,7 @@ try:
 except Exception as e:
     st.error(f"❌ Prediction error: {e}")
     st.code(f"model.input_shape = {model.input_shape}\nprovided x.shape = {x.shape}")
+
 
 
 
