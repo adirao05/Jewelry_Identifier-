@@ -31,15 +31,6 @@ model = load_model()
 if model is None:
     st.stop()
 
-with st.sidebar:
-    st.header("🛠️ Model Info")
-    st.success("✅ Model loaded!")
-    st.json({
-        "input_shape": str(getattr(model, "input_shape", None)),
-        "output_shape": str(getattr(model, "output_shape", None)),
-        "classes": CLASS_NAMES
-    })
-
 # Model expects (None, 64, 64, 3) as you showed
 H, W, C = model.input_shape[1], model.input_shape[2], model.input_shape[3]
 
@@ -79,3 +70,4 @@ try:
 except Exception as e:
     st.error(f"❌ Prediction error: {e}")
     st.code(f"model.input_shape = {model.input_shape}\nprovided x.shape = {x.shape}")
+
