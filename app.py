@@ -4,13 +4,13 @@ import cv2
 from PIL import Image
 import tensorflow as tf
 
-st.set_page_config(page_title="Jewelry Identifier", layout="wide")
+st.set_page_config(page_title="Jewelry Identifier - 23MIA1120", layout="wide")
 
 st.markdown("""
 <div style="text-align:center;background:linear-gradient(90deg,#667eea 0%,#764ba2 100%);
             padding:2rem;border-radius:16px;color:white">
   <h1>Jewelry Identifier</h1>
-  <p><em>Upload an image → model predicts the jewelry type</em></p>
+  <p><em>Upload an image → model predicts the jewelry type (diamond_ring or ruby_pendant or sapphire_earrings) </em></p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -70,4 +70,5 @@ try:
 except Exception as e:
     st.error(f"❌ Prediction error: {e}")
     st.code(f"model.input_shape = {model.input_shape}\nprovided x.shape = {x.shape}")
+
 
