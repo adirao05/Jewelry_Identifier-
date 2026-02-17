@@ -1,89 +1,81 @@
 import streamlit as st
-import cv2
 import numpy as np
+import cv2
 from PIL import Image
 import tensorflow as tf
 
-# Page config
 st.set_page_config(page_title="Jewelry Identifier", layout="wide")
 
 st.markdown("""
-<div style='text-align: center; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 15px; color: white;'>
-    <h1>🔮 Jewelry Identifier</h1>
-    <p><em>by 23MIA1120</em></p>
+<div style="text-align:center;background:linear-gradient(90deg,#667eea 0%,#764ba2 100%);
+            padding:2rem;border-radius:16px;color:white">
+  <h1>Jewelry Identifier</h1>
+  <p><em>Upload an image → model predicts the jewelry type</em></p>
 </div>
-<br>
-Upload jewelry image → AI identifies type!
 """, unsafe_allow_html=True)
 
-# Load Keras model
+# MUST match training order (verify in Colab!)
+CLASS_NAMES = ["diamond_ring", "ruby_pendant", "sapphire_earrings"]
+
+MODEL_PATH = "jewelry_model.h5"  # your .h5 file name in GitHub repo root
+
 @st.cache_resource
 def load_model():
     try:
-        model = tf.keras.models.load_model("jewelry_model.h5")  # or "my_model.pkl" if fixed
-        return model
+        return tf.keras.models.load_model(MODEL_PATH)
     except Exception as e:
-        st.error(f"❌ Model error: {str(e)[:100]}...")
+        st.error(f"❌ Model load error: {str(e)[:160]}...")
         return None
 
 model = load_model()
 if model is None:
     st.stop()
 
-# Debug sidebar
 with st.sidebar:
     st.header("🛠️ Model Info")
     st.success("✅ Model loaded!")
-    st.json({"input_shape": str(model.input_shape)})
+    st.json({
+        "input_shape": str(getattr(model, "input_shape", None)),
+        "output_shape": str(getattr(model, "output_shape", None)),
+        "classes": CLASS_NAMES
+    })
 
-# File uploader
-uploaded_file = st.file_uploader("📁 Upload image", type=["jpg", "png", "jpeg"])
+# Model expects (None, 64, 64, 3) as you showed
+H, W, C = model.input_shape[1], model.input_shape[2], model.input_shape[3]
 
-if uploaded_file:
-    image = Image.open(uploaded_file)
-    st.image(image, caption="Original", use_column_width=True)
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.header("📊 Processing")
-        
-        # Image to array
-        img_array = np.array(image)
-        
-        # CNN preprocessing (standard Keras: channels_last)
-        target_size = (224, 224)  # UPDATE from model.input_shape[1:3]
-        img_resized = cv2.resize(img_array, target_size) / 255.0
-        features = np.expand_dims(img_resized, axis=0).astype(np.float32)  # (1, 224, 224, 3)
-        
-        st.write("**Input shape:**", features.shape)
-        
-        # Predict
-        with st.spinner("Predicting..."):
-            prediction = model.predict(features, verbose=0)
-            pred_class = np.argmax(prediction[0])
-            confidence = np.max(prediction[0])
-            
-        st.success(f"🎉 **Jewelry Type: {pred_class}**")
-        st.info(f"Confidence: {confidence:.1%}")
-        st.write("**Raw probs:**", {i: f"{p:.1%}" for i, p in enumerate(prediction[0])})
-    
-    with col2:
-        st.header("👁️ Preview")
-        # Contours for fun
-        gray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
-        _, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
-        contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        if contours:
-            img_contours = cv2.drawContours(img_array.copy(), contours[:3], -1, (0, 255, 0), 3)
-            st.image(cv2.cvtColor(img_contours, cv2.COLOR_BGR2RGB), caption="Contours")
-    
-    # Download processed
-    processed_img = (features[0] * 255).astype(np.uint8)
-    st.download_button("💾 Download processed", 
-                      cv2.imencode('.png', processed_img)[1].tobytes(), 
-                      "processed.png")
+uploaded_file = st.file_uploader("📁 Upload jewelry image", type=["jpg", "jpeg", "png"])
 
-st.markdown("---")
-st.markdown("*Powered by Keras + Streamlit*")
+if uploaded_file is None:
+    st.info("Upload an image to start prediction.")
+    st.stop()
 
+image = Image.open(uploaded_file).convert("RGB")
+st.image(image, caption="Uploaded image", use_column_width=True)
+
+# Preprocess: (1, H, W, 3)
+img = np.array(image)                      # RGB
+img = cv2.resize(img, (W, H))
+img = img.astype(np.float32) / 255.0
+x = np.expand_dims(img, axis=0)
+
+st.write("Input shape given to model:", x.shape)
+
+try:
+    probs = model.predict(x, verbose=0)[0]          # shape (num_classes,)
+    pred_idx = int(np.argmax(probs))
+    conf = float(np.max(probs))
+
+    # Safe mapping
+    pred_name = CLASS_NAMES[pred_idx] if pred_idx < len(CLASS_NAMES) else f"class_{pred_idx}"
+
+    st.success(f"Prediction: {pred_name}")
+    st.write(f"Confidence: {conf:.2%}")
+
+    with st.expander("Show probabilities"):
+        for i, p in enumerate(probs):
+            label = CLASS_NAMES[i] if i < len(CLASS_NAMES) else f"class_{i}"
+            st.write(f"{label}: {float(p):.4f}")
+
+except Exception as e:
+    st.error(f"❌ Prediction error: {e}")
+    st.code(f"model.input_shape = {model.input_shape}\nprovided x.shape = {x.shape}")
