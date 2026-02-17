@@ -10,7 +10,7 @@ st.markdown("""
 <div style="text-align:center;background:linear-gradient(90deg,#667eea 0%,#764ba2 100%);
             padding:2rem;border-radius:16px;color:white">
   <h1>Jewelry Identifier</h1>
-  <p><em>Upload an image → model predicts the jewelry type (diamond_ring or ruby_pendant or sapphire_earrings) </em></p>
+  <p><em>Upload an image → model predicts the jewelry type (diamond ring or ruby pendant or sapphire earrings) </em></p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -70,5 +70,6 @@ try:
 except Exception as e:
     st.error(f"❌ Prediction error: {e}")
     st.code(f"model.input_shape = {model.input_shape}\nprovided x.shape = {x.shape}")
+
 
 
