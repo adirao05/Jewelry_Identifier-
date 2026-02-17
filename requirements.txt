@@ -2,6 +2,6 @@ streamlit
 opencv-python-headless==4.10.0.84
 pillow
 numpy
-tensorflow==2.17.0
-keras==3.4.1
-scikit-learn  # if also used
+tensorflow-cpu
+keras
+scikit-learn
