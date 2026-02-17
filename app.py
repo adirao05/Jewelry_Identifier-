@@ -4,7 +4,7 @@ import cv2
 from PIL import Image
 import tensorflow as tf
 
-st.set_page_config(page_title="Jewelry Identifier - 23MIA1120", layout="wide")
+st.set_page_config(page_title="Jewelry Identifier 23MIA1120", layout="wide")
 
 st.markdown("""
 <div style="text-align:center;background:linear-gradient(90deg,#667eea 0%,#764ba2 100%);
@@ -70,6 +70,7 @@ try:
 except Exception as e:
     st.error(f"❌ Prediction error: {e}")
     st.code(f"model.input_shape = {model.input_shape}\nprovided x.shape = {x.shape}")
+
 
 
 
