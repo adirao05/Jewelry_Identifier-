@@ -2,4 +2,4 @@ streamlit
 opencv-python-headless==4.10.0.84
 pillow
 numpy
-tensorflow-cpu==2.20.0  # latest for 3.13
+tensorflow-cpu
