@@ -7,8 +7,20 @@ import io
 
 @st.cache_resource
 def load_model():
-    with open("my_model.pkl", "rb") as f: 
-        return pickle.load(f)
+    try:
+        with open("my_model.pkl", "rb") as f:  # exact filename
+            return pickle.load(f)
+    except FileNotFoundError:
+        st.error("❌ my_model.pkl not found! Upload it to repo root.")
+        return None
+    except Exception as e:
+        st.error(f"❌ Model load error: {str(e)[:100]}...")
+        return None
+
+model = load_model()
+if model is None:
+    st.stop()  # Halt app until fixed
+
 
 model = load_model()
 
@@ -38,3 +50,4 @@ if uploaded_file is not None:
         st.image(cv2.cvtColor(img_with_contours, cv2.COLOR_BGR2RGB), caption="Contours")
     else:
         st.warning("No contours detected. Try a clearer image.")
+
