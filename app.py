@@ -20,7 +20,7 @@ Upload jewelry image → AI identifies type!
 @st.cache_resource
 def load_model():
     try:
-        model = tf.keras.models.load_model("my_model.h5")  # or "my_model.pkl" if fixed
+        model = tf.keras.models.load_model("jewelry_model.h5")  # or "my_model.pkl" if fixed
         return model
     except Exception as e:
         st.error(f"❌ Model error: {str(e)[:100]}...")
@@ -86,3 +86,4 @@ if uploaded_file:
 
 st.markdown("---")
 st.markdown("*Powered by Keras + Streamlit*")
+
