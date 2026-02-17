@@ -1,92 +1,88 @@
 import streamlit as st
-import pickle
 import cv2
 import numpy as np
 from PIL import Image
-import tensorflow as tf  # for Keras model
+import tensorflow as tf
 
 # Page config
 st.set_page_config(page_title="Jewelry Identifier", layout="wide")
 
 st.markdown("""
-# 🔮 Jewelry Identifier
-**by 23MIA1120**  
-Upload jewelry image → Auto-detect type!
+<div style='text-align: center; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 15px; color: white;'>
+    <h1>🔮 Jewelry Identifier</h1>
+    <p><em>by 23MIA1120</em></p>
+</div>
+<br>
+Upload jewelry image → AI identifies type!
 """, unsafe_allow_html=True)
 
-# Load model (safe version)
+# Load Keras model
 @st.cache_resource
 def load_model():
     try:
-        with open("my_model.pkl", "rb") as f:
-            return pickle.load(f)
-    except FileNotFoundError:
-        st.error("❌ my_model.pkl missing! Upload to repo root.")
-        return None
+        model = tf.keras.models.load_model("my_model.h5")  # or "my_model.pkl" if fixed
+        return model
     except Exception as e:
-        st.error(f"❌ Load error: {str(e)[:100]}...")
+        st.error(f"❌ Model error: {str(e)[:100]}...")
         return None
 
 model = load_model()
 if model is None:
     st.stop()
 
-# Sidebar for debug info
+# Debug sidebar
 with st.sidebar:
-    st.header("🛠️ Debug")
-    if model:
-        st.success("✅ Model loaded!")
-        st.write("**Input shape:**", getattr(model, 'input_shape', 'N/A'))
+    st.header("🛠️ Model Info")
+    st.success("✅ Model loaded!")
+    st.json({"input_shape": str(model.input_shape)})
 
-# Main uploader
-uploaded_file = st.file_uploader("📁 Upload jewelry image", type=["jpg", "png", "jpeg"])
+# File uploader
+uploaded_file = st.file_uploader("📁 Upload image", type=["jpg", "png", "jpeg"])
 
-if uploaded_file is not None:
-    # Display original
+if uploaded_file:
     image = Image.open(uploaded_file)
-    st.image(image, caption="Uploaded", use_column_width=True)
+    st.image(image, caption="Original", use_column_width=True)
     
-    # Process
     col1, col2 = st.columns(2)
     
     with col1:
-        st.header("📊 Analysis")
+        st.header("📊 Processing")
         
-        # OpenCV processing
+        # Image to array
         img_array = np.array(image)
+        
+        # CNN preprocessing (standard Keras: channels_last)
+        target_size = (224, 224)  # UPDATE from model.input_shape[1:3]
+        img_resized = cv2.resize(img_array, target_size) / 255.0
+        features = np.expand_dims(img_resized, axis=0).astype(np.float32)  # (1, 224, 224, 3)
+        
+        st.write("**Input shape:**", features.shape)
+        
+        # Predict
+        with st.spinner("Predicting..."):
+            prediction = model.predict(features, verbose=0)
+            pred_class = np.argmax(prediction[0])
+            confidence = np.max(prediction[0])
+            
+        st.success(f"🎉 **Jewelry Type: {pred_class}**")
+        st.info(f"Confidence: {confidence:.1%}")
+        st.write("**Raw probs:**", {i: f"{p:.1%}" for i, p in enumerate(prediction[0])})
+    
+    with col2:
+        st.header("👁️ Preview")
+        # Contours for fun
         gray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
         _, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
         contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        
         if contours:
-            largest = max(contours, key=cv2.contourArea)
-            area = cv2.contourArea(largest)
-            perimeter = cv2.arcLength(largest, True)
-            circularity = 4 * np.pi * area / (perimeter ** 2) if perimeter > 0 else 0
-            aspect_ratio = img_array.shape[0] / img_array.shape[1]
-            
-            # **KEY: 5 MOST COMMON FEATURES for tabular models - ADJUST HERE**
-            features = np.array([[area, perimeter, circularity, aspect_ratio, area/perimeter]])
-            
-            st.write("**Features shape:**", features.shape)
-            st.write("**Features:**", features[0].round(3))
-            
-            try:
-                # Predict (works for sklearn/Keras tabular)
-                prediction = model.predict(features)[0]
-                st.success(f"🎉 **Predicted: {prediction}**")
-            except ValueError as e:
-                st.error(f"❌ Shape error: {str(e)[:100]}")
-                st.info("🔧 Fix: Match features to training data (check model.input_shape)")
-        else:
-            st.warning("No contours found.")
+            img_contours = cv2.drawContours(img_array.copy(), contours[:3], -1, (0, 255, 0), 3)
+            st.image(cv2.cvtColor(img_contours, cv2.COLOR_BGR2RGB), caption="Contours")
     
-    with col2:
-        st.header("👁️ Visual")
-        if 'largest' in locals():
-            img_contours = cv2.drawContours(img_array.copy(), [largest], -1, (0, 255, 0), 3)
-            st.image(cv2.cvtColor(img_contours, cv2.COLOR_BGR2RGB), caption="Contours", use_column_width=True)
+    # Download processed
+    processed_img = (features[0] * 255).astype(np.uint8)
+    st.download_button("💾 Download processed", 
+                      cv2.imencode('.png', processed_img)[1].tobytes(), 
+                      "processed.png")
 
-# Footer
 st.markdown("---")
-st.markdown("*Built with ❤️ in Colab + Streamlit*")
+st.markdown("*Powered by Keras + Streamlit*")
